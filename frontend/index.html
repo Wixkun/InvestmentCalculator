@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        async function calculateInvestment() {
+            const initial_balance = parseFloat(document.getElementById("initial_balance").value);
+            const annual_rate = parseFloat(document.getElementById("annual_rate").value) / 100;
+            const years = parseInt(document.getElementById("years").value);
+
+            const monthly_contribution = parseFloat(document.getElementById("monthly_contribution").value);
+            const annual_lump_sum = parseFloat(document.getElementById("annual_lump_sum").value);
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/calculate-investment", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        initial_balance: initial_balance,
+                        annual_rate: annual_rate,
+                        years: years,
+                        monthly_contribution: monthly_contribution,
+                        annual_lump_sum: annual_lump_sum
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (Array.isArray(data)) {
+                    displayResults(data);
+                    plotGraph(data);
+                } else {
+                    console.error("Erreur API :", data.error || "Format inconnu");
+                }
+            } catch (error) {
+                console.error("Erreur réseau :", error);
+            }
+        }
+
+        function displayResults(data) {
+            const resultsTable = document.getElementById("results");
+            resultsTable.innerHTML = `
+                <tr>
+                    <th>Year</th>
+                    <th>Start Balance (€)</th>
+                    <th>Monthly Contributions (€)</th>
+                    <th>Lump Sum Contributions (€)</th>
+                    <th>Total Contributions (€)</th>
+                    <th>End Balance (€)</th>
+                </tr>`;
+            
+            data.forEach(row => {
+                resultsTable.innerHTML += `
+                    <tr>
+                        <td>${row["Year"]}</td>
+                        <td>${row["Start Balance (€)"].toFixed(2)}</td>
+                        <td>${row["Monthly Contributions (€)"].toFixed(2)}</td>
+                        <td>${row["Lump Sum Contributions (€)"].toFixed(2)}</td>
+                        <td>${row["Total Contributions (€)"].toFixed(2)}</td>
+                        <td>${row["End Balance (€)"].toFixed(2)}</td>
+                    </tr>`;
+            });
+        }
+
+        function plotGraph(data) {
+            const labels = data.map(row => `Year ${row["Year"]}`);
+            const balances = data.map(row => row["End Balance (€)"]);
+
+            const ctx = document.getElementById('investmentChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line', // Type de graphique
+                data: {
+                    labels: labels, // Années
+                    datasets: [{
+                        label: 'End Balance (€)',
+                        data: balances, // Valeurs des soldes finaux
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Investment Calculator</h1>
+    <form onsubmit="event.preventDefault(); calculateInvestment();">
+        <label for="initial_balance">Initial Balance (€):</label>
+        <input type="number" id="initial_balance" step="0.01" required><br><br>
+
+        <label for="annual_rate">Annual Rate (%):</label>
+        <input type="number" id="annual_rate" step="0.01" value="8" required><br><br>
+
+        <label for="years">Investment Period (Years):</label>
+        <input type="number" id="years" required><br><br>
+
+        <label for="monthly_contribution">Monthly Contribution (€):</label>
+        <input type="number" id="monthly_contribution" step="0.01" required><br><br>
+
+        <label for="annual_lump_sum">Annual Lump Sum (€):</label>
+        <input type="number" id="annual_lump_sum" step="0.01" required><br><br>
+
+        <button type="submit">Calculate</button>
+    </form>
+
+    <h2>Results</h2>
+    <table id="results" border="1"></table>
+
+    <h2>Graph</h2>
+    <canvas id="investmentChart" width="400" height="200"></canvas>
+</body>
+</html>
