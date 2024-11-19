@@ -97,7 +97,6 @@ investment-calculator/
 ├── frontend/
 │   ├── index.html            # Interface utilisateur
 │   ├── style.css             # Styles CSS (optionnel)
-│   ├── script.js             # Logique frontend
 ```
 
 ---
